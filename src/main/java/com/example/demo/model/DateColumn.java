@@ -1,10 +1,15 @@
 package com.example.demo.model;
 
+import com.example.demo.core.CustomSerializable;
+
+import java.io.DataInputStream;
+import java.io.DataOutputStream;
+import java.io.IOException;
 import java.text.ParseException;
 import java.text.SimpleDateFormat;
 import java.util.Date;
 
-public class DateColumn implements DataColumn<Date> {
+public class DateColumn implements DataColumn<Date>, CustomSerializable {
     private String columnName;        // Имя столбца
     private Date value;               // Значение даты
     private SimpleDateFormat format; // Формат даты
@@ -67,5 +72,18 @@ public class DateColumn implements DataColumn<Date> {
     // Дополнительно: Setter для значения
     public void setValue(Date value) {
         this.value = value;
+    }
+
+
+    @Override
+    public void writeToStream(DataOutputStream out) throws IOException {
+        out.writeUTF(columnName); // Записываем имя столбца
+        out.writeLong(value.getTime()); // Записываем значение даты как long
+    }
+
+    @Override
+    public void readFromStream(DataInputStream in) throws IOException {
+        columnName = in.readUTF(); // Читаем имя столбца
+        value = new Date(in.readLong()); // Читаем значение даты как long и преобразуем в Date
     }
 }

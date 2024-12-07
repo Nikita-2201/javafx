@@ -1,5 +1,12 @@
 package com.example.demo.model;
-public class GpsCoordinatesColumn implements DataColumn<GpsCoordinatesColumn.GpsCoordinates> {
+
+import com.example.demo.core.CustomSerializable;
+
+import java.io.DataInputStream;
+import java.io.DataOutputStream;
+import java.io.IOException;
+
+public class GpsCoordinatesColumn implements DataColumn<GpsCoordinatesColumn.GpsCoordinates>, CustomSerializable {
     private String columnName; // Имя столбца
     private GpsCoordinates value; // Координаты
 
@@ -110,6 +117,21 @@ public class GpsCoordinatesColumn implements DataColumn<GpsCoordinatesColumn.Gps
     // Дополнительно: Setter для значения
     public void setValue(GpsCoordinates value) {
         this.value = value;
+    }
+
+    @Override
+    public void writeToStream(DataOutputStream out) throws IOException {
+        out.writeUTF(columnName); // Записываем имя столбца
+        out.writeDouble(value.latitude); // Записываем широту
+        out.writeDouble(value.longitude); // Записываем долготу
+    }
+
+    @Override
+    public void readFromStream(DataInputStream in) throws IOException {
+        columnName = in.readUTF(); // Читаем имя столбца
+        double latitude = in.readDouble(); // Читаем широту
+        double longitude = in.readDouble(); // Читаем долготу
+        value = new GpsCoordinates(latitude, longitude); // Восстанавливаем объект координат
     }
 }
 

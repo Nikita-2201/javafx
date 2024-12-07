@@ -16,17 +16,21 @@ import javafx.scene.layout.VBox;
 import javafx.stage.FileChooser;
 import javafx.stage.Stage;
 
-import java.io.File;
-import java.io.IOException;
+import java.io.*;
 import java.util.ArrayList;
+import java.util.Date;
 import java.util.List;
 
 public class TableApp extends Application {
 
+    private Table table; // Таблица как поле класса
+    private TableView<TableRow> tableView; // TableView как поле класса
+
     @Override
     public void start(Stage primaryStage) {
         //Кол. столбцов и строк при начальной генерации
-        Table table = TestDataGenerator.generateRandomTable(10, 5);
+        table = TestDataGenerator.generateRandomTable(10, 5);
+        tableView = new TableView<>();
 
         TableView<TableRow> tableView = new TableView<>();
         for (int i = 0; i < table.getColumnNames().size(); i++) {
@@ -53,8 +57,10 @@ public class TableApp extends Application {
         TextField filterField = new TextField();
         filterField.setPromptText("Введите значение для фильтрации");
         Button filterButton = new Button("Фильтровать");
+        Button saveBinaryButton = new Button("Сохранить в бинарный файл");
+        Button loadBinaryButton = new Button("Загрузить из бинарного файла");
 
-        controlPanel.getChildren().addAll(showTypesButton, addRowButton, deleteRowButton, addColumnButton , deleteColumnButton,saveButton, loadButton, filterField, filterButton);
+        controlPanel.getChildren().addAll(showTypesButton, addRowButton, deleteRowButton, addColumnButton , deleteColumnButton,saveButton, loadButton, saveBinaryButton, loadBinaryButton, filterField, filterButton);
 
         showTypesButton.setOnAction(e -> {
             StringBuilder typesInfo = new StringBuilder("Типы столбцов:\n");
@@ -265,6 +271,51 @@ public class TableApp extends Application {
             }
         });
 
+        saveBinaryButton.setOnAction(e -> {
+            FileChooser fileChooser = new FileChooser();
+            fileChooser.setTitle("Сохранить в бинарный файл");
+            fileChooser.getExtensionFilters().add(new FileChooser.ExtensionFilter("Binary Files", "*.bin"));
+            File file = fileChooser.showSaveDialog(primaryStage);
+
+            if (file != null) {
+                try {
+                    saveTableToBinary(table, file.getAbsolutePath());
+                } catch (IOException ex) {
+                    ex.printStackTrace();
+                }
+            }
+        });
+
+        loadBinaryButton.setOnAction(e -> {
+            FileChooser fileChooser = new FileChooser();
+            fileChooser.setTitle("Загрузить из бинарного файла");
+            fileChooser.getExtensionFilters().add(new FileChooser.ExtensionFilter("Binary Files", "*.bin"));
+            File file = fileChooser.showOpenDialog(primaryStage);
+
+            if (file != null) {
+                try {
+                    Table loadedTable = loadTableFromBinary(file.getAbsolutePath());
+                    table = loadedTable;
+
+                    // Обновляем TableView
+                    tableView.getColumns().clear();
+                    for (int i = 0; i < table.getColumnNames().size(); i++) {
+                        final int colIndex = i;
+                        TableColumn<TableRow, String> column = new TableColumn<>(table.getColumnNames().get(i));
+                        column.setCellValueFactory(data -> new javafx.beans.property.SimpleStringProperty(
+                                data.getValue().getColumn(colIndex).toString()));
+                        tableView.getColumns().add(column);
+                    }
+
+                    tableView.getItems().clear();
+                    tableView.getItems().addAll(table.getRows());
+                    tableView.refresh();
+                } catch (IOException ex) {
+                    ex.printStackTrace();
+                }
+            }
+        });
+
         filterButton.setOnAction(e -> {
             String filterValue = filterField.getText();
             if (!filterValue.isEmpty()) {
@@ -295,5 +346,20 @@ public class TableApp extends Application {
 
     public static void main(String[] args) {
         launch(args);
+    }
+
+
+    public void saveTableToBinary(Table table, String filePath) throws IOException {
+        try (DataOutputStream out = new DataOutputStream(new FileOutputStream(filePath))) {
+            table.writeToStream(out);
+        }
+    }
+
+    public Table loadTableFromBinary(String filePath) throws IOException {
+        try (DataInputStream in = new DataInputStream(new FileInputStream(filePath))) {
+            Table table = new Table();
+            table.readFromStream(in);
+            return table;
+        }
     }
 }
