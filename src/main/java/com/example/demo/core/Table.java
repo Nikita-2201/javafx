@@ -63,34 +63,35 @@ public class Table implements CustomSerializable {
     @Override
     public void writeToStream(DataOutputStream out) throws IOException {
         out.writeInt(columnNames.size()); // Количество столбцов
-        out.writeInt(rows.size()); // Количество строк
+        out.writeInt(rows.size());        // Количество строк
 
-        // Метаданные столбцов
+        // Записываем дескрипторы столбцов
         for (int i = 0; i < columnNames.size(); i++) {
             out.writeUTF(columnNames.get(i)); // Имя столбца
             DataColumn<?> prototype = prototypeRow.getColumn(i);
             out.writeUTF(prototype.getClass().getSimpleName()); // Тип столбца
         }
 
-        // Данные строк
+        // Записываем данные строк
         for (TableRow row : rows) {
             for (int i = 0; i < columnNames.size(); i++) {
                 DataColumn<?> column = row.getColumn(i);
-                out.writeUTF(column.getClass().getSimpleName()); // Тип столбца
-                column.writeToStream(out); // Пишем данные столбца
+                System.out.println("Запись строки, столбец " + (i + 1) + ": " + column.toString());
+                column.writeToStream(out); // Записываем данные столбца
             }
         }
     }
 
+
     @Override
     public void readFromStream(DataInputStream in) throws IOException {
         int columnCount = in.readInt(); // Читаем количество столбцов
-        int rowCount = in.readInt(); // Читаем количество строк
+        int rowCount = in.readInt();    // Читаем количество строк
 
         columnNames.clear();
         prototypeRow = new TableRow();
 
-        // Читаем метаданные столбцов
+        // Читаем дескрипторы столбцов
         for (int i = 0; i < columnCount; i++) {
             String columnName = in.readUTF();
             String columnType = in.readUTF();
@@ -122,13 +123,15 @@ public class Table implements CustomSerializable {
         for (int i = 0; i < rowCount; i++) {
             TableRow row = new TableRow();
             for (int j = 0; j < columnCount; j++) {
-                String columnType = in.readUTF(); // Читаем тип столбца
                 DataColumn<?> prototype = prototypeRow.getColumn(j);
                 DataColumn<?> column = prototype.clone();
+                System.out.println("Чтение строки " + (i + 1) + ", столбца " + (j + 1) + ": ожидается тип " + prototype.getClass().getSimpleName());
                 column.readFromStream(in); // Читаем данные столбца
+                System.out.println("Прочитано значение: " + column.toString());
                 row.addColumn(column);
             }
             rows.add(row);
         }
     }
+
 }
